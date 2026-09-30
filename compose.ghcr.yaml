@@ -1,0 +1,82 @@
+# ============================================================================
+#  rss-tv — NAS 部署（用 GitHub Actions 构建好的 ghcr.io 镜像，推荐）
+#
+#  和 docker-compose.yml 的区别：image 指向 ghcr.io 上的公开镜像，
+#  不需要在 NAS 上构建，升级只要 `docker compose pull && docker compose up -d`。
+#
+#  用法：
+#    1. 用户名已填好（smallsmall3），改下面 4 处【必改】
+#    2. 【必改】① TG Token / ② chat_id / ③ TMDB Key / ④ Emby 地址与密钥
+#    3. 粘贴到绿联云/群晖 Docker → 项目 → 新建 → 部署
+#
+#  升级：
+#    docker compose pull && docker compose up -d
+# ============================================================================
+
+services:
+  rss-tv:
+    # 镜像由 GitHub Actions 自动构建（amd64 + arm64 双架构）
+    image: ghcr.io/smallsmall3/rss-tv:latest
+
+    container_name: rss-tv
+    restart: unless-stopped
+
+    environment:
+      TZ: Asia/Shanghai
+
+      # ---------- 【必改 ①】Telegram ----------
+      RMH_TG_BOT_TOKEN: "123456789:AAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      RMH_TG_CHAT_ID: "123456789"
+      # 私聊必须留空；只有群里按话题分组才填
+      RMH_TG_THREAD_ID: ""
+      # 【正向代理】科学上网端口，例如 http://192.168.31.142:10809，支持 socks5://
+      RMH_TG_PROXY: ""
+      # 【反向代理】自建 TG 反代域名才填，不是代理端口
+      RMH_TG_API_BASE: ""
+
+      # ---------- 【必改 ②】TMDB ----------
+      RMH_TMDB_API_KEY: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      RMH_TMDB_LANGUAGE: "zh-CN"
+      RMH_TMDB_PROXY: ""
+      RMH_TMDB_API_BASE: ""
+
+      # ---------- 【必改 ③】Emby / Jellyfin ----------
+      RMH_EMBY_URL: "http://192.168.31.221:8096"
+      RMH_EMBY_API_KEY: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      RMH_EMBY_USER_ID: ""
+      RMH_EMBY_COUNT_AIRED_ONLY: "true"
+      RMH_EMBY_INCLUDE_SPECIALS: "false"
+      RMH_EMBY_VERIFY_TLS: "false"
+
+      # ---------- 运行参数 ----------
+      # RSS 刷新间隔（秒）：想每 2-5 分钟看一次新数据就填 120~300
+      RMH_POLL_INTERVAL: "180"
+      # 媒体库全量比对间隔（秒）：补推停机期间入库的集
+      RMH_EMBY_CHECK_INTERVAL: "1800"
+      # feed 源抓到单剧源自动转 show 订阅（默认关）
+      RMH_AUTO_SUBSCRIBE: "false"
+      RMH_LOG_LEVEL: "INFO"
+
+      # ---- 网页 UI（浏览器打开 http://<NAS IP>:18080/）----
+      # 端口号
+      RMH_WEB_PORT: "18080"
+      # ⚠️ 强烈建议设置访问口令，否则同局域网任何人都能打开并改你的配置
+      RMH_WEB_TOKEN: ""
+
+      # 数据目录（容器内路径）
+      RMH_DATA_DIR: "/data"
+
+    volumes:
+      # 数据（订阅 + 已见条目 + 进度快照，SQLite）
+      - /volume1/docker/rss-tv/data:/data
+      # 通知模板（config/notify_templates.txt，可在网页 UI 编辑）
+      - /volume1/docker/rss-tv/config:/app/config
+
+    ports:
+      - "18080:18080"
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
