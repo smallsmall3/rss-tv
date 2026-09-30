@@ -54,18 +54,18 @@ Web 仪表盘 `http://<NAS-IP>:18080` 的「订阅管理」，或命令行：
 
 ```bash
 # 已知 TMDB ID（推荐）
-python -m app add --name "无职转生" --tmdb-id 111110 --rss "https://pt.example/rss?passkey=xxx"
+python -m app.cli add --name "无职转生" --tmdb-id 111110 --rss "https://pt.example/rss?passkey=xxx"
 
 # 只填名字，自动搜 TMDB 补 id
-python -m app add --name "无职转生 第三季" --rss "https://pt.example/rss?passkey=xxx"
+python -m app.cli add --name "无职转生 第三季" --rss "https://pt.example/rss?passkey=xxx"
 ```
 
 ### 4. 验证
 
 ```bash
-python -m app list          # 看订阅与进度
-python -m app check         # 立即做一次入库比对
-python -m app test-notify   # 发测试消息
+python -m app.cli list          # 看订阅与进度
+python -m app.cli check         # 立即做一次入库比对
+python -m app.cli test-notify   # 发测试消息
 curl http://127.0.0.1:18080/healthz
 ```
 
