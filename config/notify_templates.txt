@@ -1,0 +1,14 @@
+=== feed_new ===
+{"text": "📡 发现新种：{{ title }}{% if season %} S{{ season }}{% endif %}{% if episode %}E{{ episode }}{% endif %}", "image": "{{ image }}", "image_caption": "{{ title }} 新种发布"}
+
+=== show_new ===
+{"text": "📺 {{ title }} 更新：已入库 {{ done }}/{{ total }} 集（{{ pct }}%）{% if missing %}｜待入库 {{ missing }}{% endif %}", "image": "{{ image }}", "image_caption": "{{ title }} 入库 {{ done }}/{{ total }}（{{ pct }}%）"}
+
+=== library_update ===
+{"text": "📥 {{ title }} 有新集入库：{{ done }}/{{ total }} 集（{{ pct }}%）", "image": "{{ image }}", "image_caption": "{{ title }} {{ done }}/{{ total }}"}
+
+=== done ===
+{"text": "🎉 {{ title }} 已全部入库（{{ total }} 集），订阅已移除", "image": "{{ image }}", "image_caption": "🎉 {{ title }} 完结撒花"}
+
+=== sub_added ===
+{"text": "✅ {{ title }} 已添加订阅", "image": "{{ image }}", "image_caption": "✅ {{ title }} 已添加订阅"}

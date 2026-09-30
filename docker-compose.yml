@@ -1,0 +1,11 @@
+services:
+  rss-tv:
+    build: .
+    container_name: rss-tv
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "18080:18080"
+    volumes:
+      - ./data:/data
+      - ./config:/app/config
