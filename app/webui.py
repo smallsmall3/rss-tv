@@ -237,6 +237,16 @@ document.getElementById('add-form').onsubmit = async (e) => {
 
 // ---- 设置 ----
 const CFG_LABELS = {telegram:'Telegram', tmdb:'TMDB', emby:'Emby/Jellyfin', app:'应用'};
+// 字段中文标签（没登记的就显示原字段名）
+const FIELD_LABELS = {
+  bot_token:'Bot Token', chat_id:'Chat ID', thread_id:'Thread ID', api_base:'反向代理', proxy:'正向代理',
+  api_key:'API Key', language:'语言', url:'地址', user_id:'User ID',
+  count_aired_only:'只统计已播出', include_specials:'包含特别篇', verify_tls:'校验 TLS',
+  poll_interval:'RSS 轮询间隔(秒)', emby_check_interval:'媒体库比对间隔(秒)', auto_subscribe:'自动订阅', web_token:'访问口令',
+  notify_feed_new:'发现新种通知', notify_show_new:'剧集更新进度通知', notify_library_update:'媒体库新入库通知', notify_done:'追完通知',
+};
+// 布尔字段（渲染成勾选框）
+const BOOL_FIELDS = new Set(['count_aired_only','include_specials','verify_tls','auto_subscribe','notify_feed_new','notify_show_new','notify_library_update','notify_done']);
 async function loadSettings(){
   // 配置表单
   const cfg = await (await fetch('/api/config'+authSuffix())).json();
@@ -246,8 +256,20 @@ async function loadSettings(){
     const sec = document.createElement('div'); sec.className='field';
     sec.innerHTML = `<label style="font-weight:600;color:var(--text)">${CFG_LABELS[section]||section}</label>`;
     for (const [k,v] of Object.entries(fields)){
-      const f = document.createElement('div'); f.className='field';
-      f.innerHTML = `<label>${esc(k)}</label><input name="${section}.${k}" value="${esc(String(v))}">`;
+      const f = document.createElement('div');
+      const label = FIELD_LABELS[k] || k;
+      if (BOOL_FIELDS.has(k)){
+        // 布尔字段 → 勾选框
+        f.className='field';
+        f.style.flexDirection='row';
+        f.style.alignItems='center';
+        f.style.gap='8px';
+        const checked = (v===true || v===1 || v==='true' || v==='1') ? 'checked' : '';
+        f.innerHTML = `<input type="checkbox" name="${section}.${k}" ${checked} style="width:16px;height:16px"><label style="margin:0">${esc(label)}</label>`;
+      } else {
+        f.className='field';
+        f.innerHTML = `<label>${esc(label)}</label><input name="${section}.${k}" value="${esc(String(v))}">`;
+      }
       sec.appendChild(f);
     }
     form.appendChild(sec);
@@ -269,7 +291,11 @@ async function saveConfig(){
   for (const input of form.querySelectorAll('input')){
     const [section, key] = input.name.split('.');
     if (!body[section]) body[section] = {};
-    body[section][key] = input.value;
+    if (input.type === 'checkbox'){
+      body[section][key] = input.checked;
+    } else {
+      body[section][key] = input.value;
+    }
   }
   const r = await fetch('/api/config'+authSuffix(), {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
   const d = await r.json();

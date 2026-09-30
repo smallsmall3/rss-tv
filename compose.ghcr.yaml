@@ -4,10 +4,11 @@
 #  和 docker-compose.yml 的区别：image 指向 ghcr.io 上的公开镜像，
 #  不需要在 NAS 上构建，升级只要 `docker compose pull && docker compose up -d`。
 #
-#  用法：
-#    1. 用户名已填好（smallsmall3），改下面 4 处【必改】
-#    2. 【必改】① TG Token / ② chat_id / ③ TMDB Key / ④ Emby 地址与密钥
-#    3. 粘贴到绿联云/群晖 Docker → 项目 → 新建 → 部署
+#  所有密钥与 RSS 订阅都不在本文件里填，而是通过网页 UI 配置：
+#    1. 粘贴本文件到绿联云/群晖 → Docker → 项目 → 新建 → 部署
+#    2. 浏览器打开 http://<NAS 的 IP>:18080/
+#    3. 进「设置」页面填 Telegram / TMDB / Emby 三组密钥（保存即热生效）
+#    4. 进「订阅管理」页面添加 RSS 订阅
 #
 #  升级：
 #    docker compose pull && docker compose up -d
@@ -24,46 +25,40 @@ services:
     environment:
       TZ: Asia/Shanghai
 
-      # ---------- 【必改 ①】Telegram ----------
-      RMH_TG_BOT_TOKEN: "123456789:AAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-      RMH_TG_CHAT_ID: "123456789"
-      # 私聊必须留空；只有群里按话题分组才填
-      RMH_TG_THREAD_ID: ""
-      # 【正向代理】科学上网端口，例如 http://192.168.31.142:10809，支持 socks5://
-      RMH_TG_PROXY: ""
-      # 【反向代理】自建 TG 反代域名才填，不是代理端口
-      RMH_TG_API_BASE: ""
+      # ---------------------------------------------------------------
+      #  以下密钥与订阅一律不在这里填，改到网页 UI 里配置：
+      #   - Telegram：Bot Token + Chat ID
+      #   - TMDB：API Key
+      #   - Emby：地址 + API Key
+      #   - RSS 订阅：订阅管理页
+      #
+      #  想用环境变量也行（环境变量优先级高于 UI 保存的值），
+      #  取消下面注释并填值即可。
+      # ---------------------------------------------------------------
 
-      # ---------- 【必改 ②】TMDB ----------
-      RMH_TMDB_API_KEY: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-      RMH_TMDB_LANGUAGE: "zh-CN"
-      RMH_TMDB_PROXY: ""
-      RMH_TMDB_API_BASE: ""
+      # ---- Telegram（推送到手机）----
+      # RMH_TG_BOT_TOKEN: ""
+      # RMH_TG_CHAT_ID: ""
+      # RMH_TG_PROXY: "http://192.168.31.142:10809"   # 国内直连不通就填代理
 
-      # ---------- 【必改 ③】Emby / Jellyfin ----------
-      RMH_EMBY_URL: "http://192.168.31.221:8096"
-      RMH_EMBY_API_KEY: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-      RMH_EMBY_USER_ID: ""
-      RMH_EMBY_COUNT_AIRED_ONLY: "true"
-      RMH_EMBY_INCLUDE_SPECIALS: "false"
-      RMH_EMBY_VERIFY_TLS: "false"
+      # ---- TMDB（算剧集总集数，查漏要用）----
+      # RMH_TMDB_API_KEY: ""
+      # RMH_TMDB_PROXY: "http://192.168.31.142:10809"
 
-      # ---------- 运行参数 ----------
-      # RSS 刷新间隔（秒）：想每 2-5 分钟看一次新数据就填 120~300
-      RMH_POLL_INTERVAL: "180"
-      # 媒体库全量比对间隔（秒）：补推停机期间入库的集
-      RMH_EMBY_CHECK_INTERVAL: "1800"
-      # feed 源抓到单剧源自动转 show 订阅（默认关）
-      RMH_AUTO_SUBSCRIBE: "false"
+      # ---- Emby / Jellyfin（算入库进度，按剧追踪要用）----
+      # RMH_EMBY_URL: "http://192.168.31.221:8096"    # 必须是 NAS 能访问到的地址，不能用 localhost
+      # RMH_EMBY_API_KEY: ""
+
+      # ---------- 运行参数（也可进 UI 改） ----------
+      RMH_POLL_INTERVAL: "180"          # RSS 刷新间隔（秒）
+      RMH_EMBY_CHECK_INTERVAL: "1800"   # 媒体库全量比对间隔（秒）
       RMH_LOG_LEVEL: "INFO"
 
-      # ---- 网页 UI（浏览器打开 http://<NAS IP>:18080/）----
-      # 端口号
+      # ---- 网页 UI ----
       RMH_WEB_PORT: "18080"
-      # ⚠️ 强烈建议设置访问口令，否则同局域网任何人都能打开并改你的配置
-      RMH_WEB_TOKEN: ""
+      # 留空 = 不设口令。第一次进去后建议在「设置」里加访问口令。
+      # RMH_WEB_TOKEN: ""
 
-      # 数据目录（容器内路径）
       RMH_DATA_DIR: "/data"
 
     volumes:

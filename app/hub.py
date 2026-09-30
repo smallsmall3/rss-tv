@@ -56,6 +56,16 @@ class Hub:
     def reload_templates(self) -> None:
         self._templates = load_templates(self.templates_path)
 
+    def _notify_enabled(self, event: str) -> bool:
+        """判断某类通知是否开启（4 类通知各自独立开关）。"""
+        flags = {
+            "feed_new": self.config.app.notify_feed_new,
+            "show_new": self.config.app.notify_show_new,
+            "library_update": self.config.app.notify_library_update,
+            "done": self.config.app.notify_done,
+        }
+        return flags.get(event, True)
+
     def _render(self, event: str, context: dict[str, Any]) -> dict[str, str] | None:
         tpl = self._templates.get(event)
         if not tpl:
@@ -132,6 +142,9 @@ class Hub:
     # ---------------- feed 模式（纯播报） ----------------
 
     async def _push_feed(self, sub: dict[str, Any], item: FeedItem, parsed: ParsedTitle) -> None:
+        if not self._notify_enabled("feed_new"):
+            log.debug("新种通知已关闭，跳过推送：%s", item.title)
+            return
         context: dict[str, Any] = {
             "title": parsed.title or item.title,
             "raw_title": item.title,
@@ -238,6 +251,9 @@ class Hub:
             await self._push_update(sub, context)
 
     async def _push_update(self, sub: dict[str, Any], context: dict[str, Any]) -> None:
+        if not self._notify_enabled("show_new"):
+            log.debug("更新进度通知已关闭，跳过推送：%s", context.get("title"))
+            return
         progress = f"入库 {context['done']}/{context['total']} 集（{context['pct']}%）"
         if context.get("missing"):
             progress += f"｜待入库 {context['missing']}"
@@ -261,22 +277,25 @@ class Hub:
         await self.notifier.push(msg)
 
     async def _push_done(self, sub: dict[str, Any], context: dict[str, Any]) -> None:
-        rendered = self._render("done", context)
-        if rendered:
-            msg = Message(
-                title=context["title"],
-                text=rendered.get("text", ""),
-                image=rendered.get("image", ""),
-                image_caption=rendered.get("image_caption", ""),
-            )
+        if not self._notify_enabled("done"):
+            log.debug("完结通知已关闭，跳过推送：%s", context.get("title"))
         else:
-            msg = Message(
-                title=context["title"],
-                text=f"🎉 {context['title']} 已全部入库（{context['total']} 集）",
-                image=context["image"],
-                image_caption=f"🎉 {context['title']} 全部入库",
-            )
-        await self.notifier.push(msg)
+            rendered = self._render("done", context)
+            if rendered:
+                msg = Message(
+                    title=context["title"],
+                    text=rendered.get("text", ""),
+                    image=rendered.get("image", ""),
+                    image_caption=rendered.get("image_caption", ""),
+                )
+            else:
+                msg = Message(
+                    title=context["title"],
+                    text=f"🎉 {context['title']} 已全部入库（{context['total']} 集）",
+                    image=context["image"],
+                    image_caption=f"🎉 {context['title']} 全部入库",
+                )
+            await self.notifier.push(msg)
 
         if sub.get("remove_when_done", True):
             log.info("订阅 %s 已完成，自动退订", sub["id"])
@@ -341,7 +360,11 @@ class Hub:
                 log.warning("订阅 %s 比对失败：%s", sub["id"], e)
 
     async def check_and_push(self, sub: dict[str, Any]) -> None:
-        """单次入库比对并推送（供 reconcile 和手动 check 用）。"""
+        """单次入库比对并推送（供 reconcile 和手动 check 用）。
+
+        这是「媒体库新入库」场景（library_update），有自己独立的通知开关；
+        完结时仍走 done 开关。
+        """
         tmdb_id = sub["tmdb_id"]
         series = await self.tmdb.series(None, tmdb_id=tmdb_id)
         lib = await self.emby.find_series(tmdb_id, series.name)
@@ -361,7 +384,11 @@ class Hub:
             if done >= total and total > 0:
                 await self._push_done(sub, context)
             else:
-                await self._push_update(sub, context)
+                # library_update 有独立开关
+                if not self._notify_enabled("library_update"):
+                    log.debug("媒体库新入库通知已关闭，跳过推送：%s", series.name)
+                else:
+                    await self._push_update(sub, context)
             self.db.save_progress(sub["id"], {
                 "tmdb_id": tmdb_id, "name": series.name, "season": None,
                 "total": total, "aired": total, "done": done,

@@ -66,6 +66,11 @@ class AppSettings:
     web_host: str = "0.0.0.0"
     web_port: int = 18080
     web_token: str = ""               # Web UI 访问令牌（空=不鉴权）
+    # 4 类通知的独立开关（默认全开，可单独关闭某一类）
+    notify_feed_new: bool = True      # 发现新种
+    notify_show_new: bool = True      # 剧集更新进度
+    notify_library_update: bool = True  # 媒体库新入库
+    notify_done: bool = True          # 追完/完结
 
 
 @dataclass
@@ -100,13 +105,18 @@ class Config:
         "RMH_WEB_PORT": ("app", "web_port", "int"),
         "RMH_WEB_TOKEN": ("app", "web_token", "str"),
         "RMH_DATA_DIR": ("app", "data_dir", "str"),
+        "RMH_NOTIFY_FEED_NEW": ("app", "notify_feed_new", "bool"),
+        "RMH_NOTIFY_SHOW_NEW": ("app", "notify_show_new", "bool"),
+        "RMH_NOTIFY_LIBRARY_UPDATE": ("app", "notify_library_update", "bool"),
+        "RMH_NOTIFY_DONE": ("app", "notify_done", "bool"),
     }
 
     UI_EDITABLE: ClassVar[dict[str, list[str]]] = {
         "telegram": ["bot_token", "chat_id", "thread_id", "api_base", "proxy"],
         "tmdb": ["api_key", "api_base", "proxy", "language"],
         "emby": ["url", "api_key", "user_id", "count_aired_only", "include_specials", "verify_tls"],
-        "app": ["poll_interval", "emby_check_interval", "auto_subscribe", "web_token"],
+        "app": ["poll_interval", "emby_check_interval", "auto_subscribe", "web_token",
+                "notify_feed_new", "notify_show_new", "notify_library_update", "notify_done"],
     }
 
     SECRET_FIELDS: ClassVar[set[str]] = {
